@@ -1024,7 +1024,10 @@ def main(_):
       for key in sorted(result.keys()):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
-
+        if key is 'pred' or key is 'label_ids':
+          with open('/home/users/wangzongyi/work/output/' + key, 'w') as f:
+            for re in result[key]:
+              f.write(re + '\n')
   if FLAGS.do_predict:
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     num_actual_predict_examples = len(predict_examples)
