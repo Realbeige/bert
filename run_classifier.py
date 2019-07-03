@@ -334,7 +334,7 @@ class MrpcProcessor(DataProcessor):
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
 
-############################################################################
+############################################################################wzy
 # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 class WzyProcessor(DataProcessor):
   """Processor for the MRPC data set (GLUE version)."""
@@ -736,6 +736,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
             "eval_loss": loss,
         }
 
+      ################################################################wzy
       def auc_fn(per_example_loss, label_ids, logits, is_real_example):
         predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
         auc = tf.metrics.auc(
@@ -749,6 +750,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       def multi_metric_fn(per_example_loss, label_ids, logits, is_real_example):
                 predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
                 predicted_labels = predictions
+                probabilities = tf.nn.softmax(logits, axis=-1)
                 accuracy = tf.metrics.accuracy(label_ids, predicted_labels)
                 f1_score = tf.contrib.metrics.f1_score(
                     label_ids,
@@ -777,6 +779,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 concat1 = tf.contrib.metrics.streaming_concat(logits)
                 concat2 = tf.contrib.metrics.streaming_concat(label_ids)
                 concat3 = tf.contrib.metrics.streaming_concat(predictions)
+                concat4 = tf.contrib.metrics.streaming_concat(probabilities)
                 return {
                     "eval_accuracy": accuracy,
                     "f1_score": f1_score,
@@ -789,11 +792,14 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                     "false_negatives": false_neg,
                     'pred': concat1,
                     'label_ids': concat2,
-                    'predictions': concat3
+                    'predictions': concat3,
+                    'prob': concat4
                  } 
 
       eval_metrics = (multi_metric_fn,
                       [per_example_loss, label_ids, logits, is_real_example])
+      ###############################################################
+
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
@@ -1026,10 +1032,12 @@ def main(_):
       for key in sorted(result.keys()):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
-        if key is 'pred' or key is 'label_ids' or key is 'predictions':
+        #########wzy
+        if key is 'pred' or key is 'label_ids' or key is 'predictions' or key is 'prob':
           with open('/home/users/wangzongyi/work/output/' + key + '.txt', 'w') as f:
             for re in result[key]:
               f.write(str(re) + '\n')
+        #########
   if FLAGS.do_predict:
     predict_examples = processor.get_test_examples(FLAGS.data_dir)
     num_actual_predict_examples = len(predict_examples)
