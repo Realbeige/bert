@@ -776,6 +776,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                     predicted_labels)
                 concat1 = tf.contrib.metrics.streaming_concat(logits)
                 concat2 = tf.contrib.metrics.streaming_concat(label_ids)
+                concat3 = tf.contrib.metrics.streaming_concat(predictions)
                 return {
                     "eval_accuracy": accuracy,
                     "f1_score": f1_score,
@@ -787,7 +788,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                     "false_positives": false_pos,
                     "false_negatives": false_neg,
                     'pred': concat1,
-                    'label_ids': concat2
+                    'label_ids': concat2,
+                    'predictions': concat3
                  } 
 
       eval_metrics = (multi_metric_fn,
@@ -1024,7 +1026,7 @@ def main(_):
       for key in sorted(result.keys()):
         tf.logging.info("  %s = %s", key, str(result[key]))
         writer.write("%s = %s\n" % (key, str(result[key])))
-        if key is 'pred' or key is 'label_ids':
+        if key is 'pred' or key is 'label_ids' or key is 'predictions':
           with open('/home/users/wangzongyi/work/output/' + key + '.txt', 'w') as f:
             for re in result[key]:
               f.write(str(re) + '\n')
