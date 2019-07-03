@@ -25,6 +25,8 @@ import modeling
 import optimization
 import tokenization
 import tensorflow as tf
+import re
+
 
 flags = tf.flags
 
@@ -332,6 +334,49 @@ class MrpcProcessor(DataProcessor):
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
 
+############################################################################
+# ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+class WzyProcessor(DataProcessor):
+  """Processor for the MRPC data set (GLUE version)."""
+
+  def get_train_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+  def get_dev_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+  def get_test_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(
+        self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+  def get_labels(self):
+    """See base class."""
+    return ["0", "1"]
+
+  def _create_examples(self, lines, set_type):
+    """Creates examples for the training and dev sets."""
+    examples = []
+    for (i, line) in enumerate(lines):
+      if i == 0:
+        continue
+      guid = "%s-%s" % (set_type, i)
+      text_a = tokenization.convert_to_unicode(line[1])
+      text_b = tokenization.convert_to_unicode(line[2])
+      if set_type == "test":
+        label = "0"
+      else:
+        label = tokenization.convert_to_unicode(line[3])
+        label = re.sub('\n', '', label)
+      examples.append(
+          InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+    return examples
+#  ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+###############################################################################
 
 class ColaProcessor(DataProcessor):
   """Processor for the CoLA data set (GLUE version)."""
@@ -691,7 +736,57 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
             "eval_loss": loss,
         }
 
-      eval_metrics = (metric_fn,
+      def auc_fn(per_example_loss, label_ids, logits, is_real_example):
+        predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
+        auc = tf.metrics.auc(
+            labels=label_ids, predictions=predictions, weights=is_real_example, num_thresholds=38195)
+        loss = tf.metrics.mean(values=per_example_loss, weights=is_real_example)
+        return {
+            "eval_auc": auc,
+            "eval_los": loss,
+        }
+
+      def multi_metric_fn(per_example_loss, label_ids, logits, is_real_example):
+                predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
+                predicted_labels = predictions
+                accuracy = tf.metrics.accuracy(label_ids, predicted_labels)
+                f1_score = tf.contrib.metrics.f1_score(
+                    label_ids,
+                    predicted_labels)
+                auc = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels)
+                recall = tf.metrics.recall(
+                    label_ids,
+                    predicted_labels)
+                precision = tf.metrics.precision(
+                    label_ids,
+                    predicted_labels)
+                true_pos = tf.metrics.true_positives(
+                    label_ids,
+                    predicted_labels)
+                true_neg = tf.metrics.true_negatives(
+                    label_ids,
+                    predicted_labels)
+                false_pos = tf.metrics.false_positives(
+                    label_ids,
+                    predicted_labels)
+                false_neg = tf.metrics.false_negatives(
+                    label_ids,
+                    predicted_labels)
+                return {
+                    "eval_accuracy": accuracy,
+                    "f1_score": f1_score,
+                    "auc": auc,
+                    "precision": precision,
+                    "recall": recall,
+                    "true_positives": true_pos,
+                    "true_negatives": true_neg,
+                    "false_positives": false_pos,
+                    "false_negatives": false_neg,
+                 } 
+
+      eval_metrics = (multi_metric_fn,
                       [per_example_loss, label_ids, logits, is_real_example])
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -788,6 +883,7 @@ def main(_):
       "mnli": MnliProcessor,
       "mrpc": MrpcProcessor,
       "xnli": XnliProcessor,
+      "wzy": WzyProcessor
   }
 
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
