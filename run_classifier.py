@@ -774,6 +774,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 false_neg = tf.metrics.false_negatives(
                     label_ids,
                     predicted_labels)
+                concat1 = tf.contrib.metrics.streaming_concat(logits)
+                concat2 = tf.contrib.metrics.streaming_concat(label_ids)
                 return {
                     "eval_accuracy": accuracy,
                     "f1_score": f1_score,
@@ -784,6 +786,8 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                     "true_negatives": true_neg,
                     "false_positives": false_pos,
                     "false_negatives": false_neg,
+                    'pred': concat1,
+                    'label_ids': concat2
                  } 
 
       eval_metrics = (multi_metric_fn,
