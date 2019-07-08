@@ -847,15 +847,20 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
+          eval_metrics = eval_metrics,
           training_hooks=[logging_hook],
           scaffold_fn=scaffold_fn)
       ###############################################################
+
+      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+          mode=mode,
+          loss=total_loss,
+          eval_metrics=eval_metrics,
+          scaffold_fn=scaffold_fn)
     else:
-      logging_hook = tf.train.LoggingTensorHook({"loss": total_loss}, every_n_iter=10)
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={"probabilities": probabilities},
-          training_hooks=[logging_hook],
           scaffold_fn=scaffold_fn)
     return output_spec
 
