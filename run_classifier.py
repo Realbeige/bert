@@ -375,6 +375,47 @@ class WzyProcessor(DataProcessor):
       examples.append(
           InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
     return examples
+
+
+class NlpProcessor(DataProcessor):
+    """Processor for the MRPC data set (GLUE version)."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = tokenization.convert_to_unicode(line[1])
+            text_b = tokenization.convert_to_unicode(line[2])
+            if set_type == "test":
+                label = "0"
+            else:
+                label = tokenization.convert_to_unicode(line[3])
+                label = re.sub('\n', '', label)
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
 #  ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 ###############################################################################
 
@@ -718,12 +759,15 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
-
+      #wzy
+      logging_hook = tf.train.LoggingTensorHook({"loss": total_loss}, every_n_iter=10)
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
+          training_hooks=[logging_hook],
           scaffold_fn=scaffold_fn)
+      #wzy
     elif mode == tf.estimator.ModeKeys.EVAL:
 
       def metric_fn(per_example_loss, label_ids, logits, is_real_example):
@@ -798,17 +842,20 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
       eval_metrics = (multi_metric_fn,
                       [per_example_loss, label_ids, logits, is_real_example])
-      ###############################################################
 
+      logging_hook = tf.train.LoggingTensorHook({"loss": total_loss}, every_n_iter=10)
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
-          eval_metrics=eval_metrics,
+          training_hooks=[logging_hook],
           scaffold_fn=scaffold_fn)
+      ###############################################################
     else:
+      logging_hook = tf.train.LoggingTensorHook({"loss": total_loss}, every_n_iter=10)
       output_spec = tf.contrib.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={"probabilities": probabilities},
+          training_hooks=[logging_hook],
           scaffold_fn=scaffold_fn)
     return output_spec
 
@@ -895,7 +942,8 @@ def main(_):
       "mnli": MnliProcessor,
       "mrpc": MrpcProcessor,
       "xnli": XnliProcessor,
-      "wzy": WzyProcessor
+      "wzy": WzyProcessor,
+      "nlp": NlpProcessor
   }
 
   tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
