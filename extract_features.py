@@ -26,11 +26,14 @@ import re
 import modeling
 import tokenization
 import tensorflow as tf
+import os
 
 flags = tf.flags
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string("GPU", '2,3', "GPU used")
+os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS.GPU
 flags.DEFINE_string("input_file", None, "")
 
 flags.DEFINE_string("output_file", None, "")
