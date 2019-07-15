@@ -126,6 +126,9 @@ flags.DEFINE_integer(
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
 
+##params
+flags.DEFINE_bool("do_preprocessing", False, "Whether to run preprocessing on dataset.")
+
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
 
@@ -795,11 +798,21 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 predictions = tf.argmax(logits, axis=-1, output_type=tf.int32)
                 predicted_labels = predictions
                 probabilities = tf.nn.softmax(logits, axis=-1)
-                accuracy = tf.metrics.accuracy(label_ids, predicted_labels)
-                f1_score = tf.contrib.metrics.f1_score(
-                    label_ids,
-                    predicted_labels)
+                accuracy = tf.metrics.accuracy(
+                    labels=label_ids, predictions=predictions, weights=is_real_example)
                 auc = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels,
+                    weights=is_real_example,
+                    num_thresholds=40000)
+                pr = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels,
+                    curve='PR',
+                    weights=is_real_example,
+                    num_thresholds=40000)
+                loss = tf.metrics.mean(values=per_example_loss, weights=is_real_example)
+                f1_score = tf.contrib.metrics.f1_score(
                     label_ids,
                     predicted_labels)
                 recall = tf.metrics.recall(
@@ -826,14 +839,16 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 concat4 = tf.contrib.metrics.streaming_concat(probabilities)
                 return {
                     "*eval_accuracy": accuracy,
-                    "*f1_score": f1_score,
-                    "*auc": auc,
-                    "*precision": precision,
-                    "*recall": recall,
-                    "*true_positives": true_pos,
-                    "*true_negatives": true_neg,
-                    "*false_positives": false_pos,
-                    "*false_negatives": false_neg,
+                    # "*f1_score": f1_score,
+                    "*eval_roc_auc": auc,
+                    "*eval_pr_auc": pr,
+                    "*eval_loss": loss,
+                    # "*precision": precision,
+                    # "*recall": recall,
+                    # "*true_positives": true_pos,
+                    # "*true_negatives": true_neg,
+                    # "*false_positives": false_pos,
+                    # "*false_negatives": false_neg,
                     # '*pred': concat1,
                     # '*label_ids': concat2,
                     # '*predictions': concat3,
