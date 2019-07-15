@@ -126,9 +126,6 @@ flags.DEFINE_integer(
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
 
-##params
-flags.DEFINE_bool("do_preprocessing", False, "Whether to run preprocessing on dataset.")
-
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
 
@@ -842,7 +839,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                     # "*f1_score": f1_score,
                     "*eval_roc_auc": auc,
                     "*eval_pr_auc": pr,
-                    "*eval_loss": loss,
+                    "*eval_loss": loss
                     # "*precision": precision,
                     # "*recall": recall,
                     # "*true_positives": true_pos,
