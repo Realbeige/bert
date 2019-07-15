@@ -797,17 +797,31 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 probabilities = tf.nn.softmax(logits, axis=-1)
                 accuracy = tf.metrics.accuracy(
                     labels=label_ids, predictions=predictions, weights=is_real_example)
-                auc = tf.metrics.auc(
+                roc_auc = tf.metrics.auc(
                     label_ids,
                     predicted_labels,
                     weights=is_real_example,
                     num_thresholds=40000)
-                pr = tf.metrics.auc(
+                pr_auc = tf.metrics.auc(
                     label_ids,
                     predicted_labels,
                     curve='PR',
                     weights=is_real_example,
                     num_thresholds=40000)
+                roc_auc_isreal = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels,
+                    weights=is_real_example
+                    )
+                roc_auc_40000 = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels,
+                    num_thresholds=40000
+                )
+                roc_auc_simple = tf.metrics.auc(
+                    label_ids,
+                    predicted_labels
+                )
                 loss = tf.metrics.mean(values=per_example_loss, weights=is_real_example)
                 f1_score = tf.contrib.metrics.f1_score(
                     label_ids,
@@ -837,8 +851,11 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 return {
                     "*eval_accuracy": accuracy,
                     # "*f1_score": f1_score,
-                    "*eval_roc_auc": auc,
-                    "*eval_pr_auc": pr,
+                    "*eval_roc_auc_simple": roc_auc_simple,
+                    "*eval_roc_auc_40000": roc_auc_40000,
+                    "*eval_roc_auc_isreal": roc_auc_isreal,
+                    "*eval_roc_auc": roc_auc,
+                    "*eval_pr_auc": pr_auc,
                     "*eval_loss": loss
                     # "*precision": precision,
                     # "*recall": recall,
@@ -1035,7 +1052,9 @@ def main(_):
       config=run_config,
       train_batch_size=FLAGS.train_batch_size,
       eval_batch_size=FLAGS.eval_batch_size,
-      predict_batch_size=FLAGS.predict_batch_size)
+      predict_batch_size=FLAGS.predict_batch_size,
+      # run_config=tf.estimator.RunConfig(keep_checkpoint_max=10)
+      )
 
   if FLAGS.do_train:
     train_file = os.path.join(FLAGS.output_dir, "train.tf_record")
