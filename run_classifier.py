@@ -1073,7 +1073,7 @@ def main(_):
 
     ####wzy
     for i in range(int(FLAGS.num_train_epochs)):
-        estimator.train(input_fn=train_input_fn, max_steps=num_train_steps/FLAGS.num_train_epochs)
+
         tf.logging.info("****eval for epoch " + str(i))
         eval_examples = processor.get_dev_examples(FLAGS.data_dir)
         num_actual_eval_examples = len(eval_examples)
@@ -1111,7 +1111,8 @@ def main(_):
             is_training=False,
             drop_remainder=eval_drop_remainder)
 
-        result = estimator.evaluate(input_fn=eval_input_fn, steps=eval_steps)
+        result = estimator.train(input_fn=train_input_fn,eval_input_fn=eval_input_fn,
+                                 max_steps=num_train_steps/FLAGS.num_train_epochs)
 
         output_eval_file = os.path.join(FLAGS.output_dir, "eval_results.txt")
         with tf.gfile.GFile(output_eval_file, "w") as writer:
