@@ -1109,10 +1109,13 @@ def main(_):
         is_training=False,
         drop_remainder=eval_drop_remainder)
     for i in range(int(FLAGS.num_train_epochs)):
-        estimator.train(input_fn=train_input_fn, max_steps=len(train_examples) / FLAGS.train_batch_size)
+        # estimator.train(input_fn=train_input_fn, max_steps=len(train_examples) / FLAGS.train_batch_size)
+        # result = estimator.evaluate(input_fn=eval_input_fn, steps=eval_steps)
+        train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=len(train_examples) / FLAGS.train_batch_size)
+        eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn)
+        result = tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
-        result = estimator.evaluate(input_fn=eval_input_fn, steps=eval_steps)
 
         output_eval_file = os.path.join(FLAGS.output_dir, "eval_results.txt")
         with tf.gfile.GFile(output_eval_file, "w") as writer:
