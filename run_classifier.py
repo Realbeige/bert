@@ -1072,7 +1072,7 @@ def main(_):
     # estimator.train(input_fn=train_input_fn, max_steps=num_train_steps)
 
     ####wzy
-    for i in FLAGS.num_train_epochs:
+    for i in int(FLAGS.num_train_epochs):
         estimator.train(input_fn=train_input_fn, max_steps=num_train_steps/FLAGS.num_train_epochs)
         tf.logging.info("****eval for epoch " + str(i))
         eval_examples = processor.get_dev_examples(FLAGS.data_dir)
@@ -1123,7 +1123,8 @@ def main(_):
     ####wzy
 
 
-  if FLAGS.do_eval:
+  #if FLAGS.do_eval:
+  if False:
     eval_examples = processor.get_dev_examples(FLAGS.data_dir)
     num_actual_eval_examples = len(eval_examples)
     if FLAGS.use_tpu:
