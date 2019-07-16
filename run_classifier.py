@@ -1111,7 +1111,7 @@ def main(_):
             is_training=False,
             drop_remainder=eval_drop_remainder)
 
-        result = estimator.train(input_fn=train_input_fn,eval_input_fn=eval_input_fn,
+        result = estimator.train_and_evaluate(input_fn=train_input_fn,eval_input_fn=eval_input_fn,
                                  max_steps=num_train_steps/FLAGS.num_train_epochs)
 
         output_eval_file = os.path.join(FLAGS.output_dir, "eval_results.txt")
